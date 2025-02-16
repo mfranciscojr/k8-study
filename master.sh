@@ -19,9 +19,10 @@
 #   sudo ./k8s_calico_cluster.sh
 #
 # Customize these variables if needed:
+IP_ADDRESS=$(ip addr show ens3 | grep "inet " | awk '{print $2}' | cut -d/ -f1)
 POD_NETWORK_CIDR="10.10.0.0/16"
 NODE_NAME="${NODE_NAME:-$(hostname)}"
-
+CP_ENDPOINT="192.168.100.49:6443"
 # Function to log messages
 log() {
     echo "[INFO] $1"
@@ -54,7 +55,7 @@ log "Detected Kubernetes version: $KUBEADM_VERSION"
 # Step 3: Initialize the cluster using kubeadm
 #############################
 log "Initializing Kubernetes cluster with pod-network-cidr $POD_NETWORK_CIDR, version $KUBEADM_VERSION, node-name $NODE_NAME..."
-sudo kubeadm init --pod-network-cidr "$POD_NETWORK_CIDR" --kubernetes-version "$KUBEADM_VERSION" --node-name "$NODE_NAME" || error_exit "kubeadm init failed."
+sudo kubeadm init --control-plane-endpoint "$CP_ENDPOINT" --upload-certs --apiserver-advertise-address "$IP_ADDRESS" --pod-network-cidr "$POD_NETWORK_CIDR" --kubernetes-version "$KUBEADM_VERSION" --node-name "$NODE_NAME" || error_exit "kubeadm init failed."
 sleep 30
 #############################
 # Step 4: Set KUBECONFIG environment variable
