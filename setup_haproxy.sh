@@ -17,7 +17,7 @@ else
     sudo apt install haproxy -y
 fi
 echo "Stopping haproxy..."
-sudo systemctl start haproxy
+sudo systemctl stop haproxy
 
 echo "Backing up current HAProxy configuration file..."
 if [ -f /etc/haproxy/haproxy.cfg ]; then
