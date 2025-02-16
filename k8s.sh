@@ -1,14 +1,16 @@
 #!/bin/bash
-# Improved Kubernetes & containerd installation & configuration automation script
+# Improved Kubernetes, containerd, runc, and CNI plugins installation & configuration script
 # This script disables swap, configures kernel modules and sysctl parameters,
-# installs containerd, runc, CNI plugins, and Kubernetes components (kubeadm, kubelet, kubectl).
-# It requires jq, wget and curl to be installed.
+# installs containerd, runc, CNI plugins, and the latest Kubernetes components (kubeadm, kubelet, kubectl),
+# then prints their versions.
 #
-# Usage: Run as root or with sudo privileges.
-# Make sure your system has an internet connection.
+# It automatically fetches the latest stable Kubernetes version from dl.k8s.io and uses its minor version for the package repository.
 #
-# Author: Jhun Francisco
-# Date: Feb 16, 2025
+# Requirements: jq, wget, curl must be installed.
+# Run as root or via sudo.
+#
+# Author: [Your Name]
+# Date: [Today's Date]
 
 set -euo pipefail
 IFS=$'\n\t'
@@ -22,6 +24,15 @@ error_exit() {
     echo "[ERROR] $1" >&2
     exit 1
 }
+
+#############################
+# Global version variables
+#############################
+CONTAINERD_VERSION=""
+RUNC_VERSION=""
+CNI_VERSION=""
+FULL_K8S_VERSION=""
+MINOR_K8S_VERSION=""
 
 #############################
 # Pre-requisite checks
@@ -75,13 +86,13 @@ install_containerd() {
         error_exit "Could not determine the latest containerd release."
     fi
     log "Latest containerd version detected: $LATEST_VERSION"
-    VERSION=${LATEST_VERSION#v}
+    CONTAINERD_VERSION=${LATEST_VERSION#v}
 
-    log "Downloading containerd-${VERSION}-linux-amd64.tar.gz..."
-    wget -q "https://github.com/containerd/containerd/releases/download/${LATEST_VERSION}/containerd-${VERSION}-linux-amd64.tar.gz" -P /tmp/
+    log "Downloading containerd-${CONTAINERD_VERSION}-linux-amd64.tar.gz..."
+    wget -q "https://github.com/containerd/containerd/releases/download/${LATEST_VERSION}/containerd-${CONTAINERD_VERSION}-linux-amd64.tar.gz" -P /tmp/
 
     log "Extracting containerd..."
-    sudo tar -C /usr/local -xzvf /tmp/containerd-${VERSION}-linux-amd64.tar.gz
+    sudo tar -C /usr/local -xzvf /tmp/containerd-${CONTAINERD_VERSION}-linux-amd64.tar.gz
 
     log "Downloading containerd systemd service file..."
     sudo wget -q "https://raw.githubusercontent.com/containerd/containerd/main/containerd.service" -P /etc/systemd/system/
@@ -109,6 +120,7 @@ install_runc() {
       error_exit "Could not determine the latest runc release."
     fi
     log "Latest runc version: $LATEST_RUNC"
+    RUNC_VERSION=$LATEST_RUNC
     wget -q "https://github.com/opencontainers/runc/releases/download/${LATEST_RUNC}/runc.amd64" -P /tmp/
     sudo install -m 755 /tmp/runc.amd64 /usr/local/sbin/runc
     log "runc installation complete."
@@ -121,6 +133,7 @@ install_cni_plugins() {
       error_exit "Could not determine the latest CNI plugins release."
     fi
     log "Latest CNI plugins version: $LATEST_CNI"
+    CNI_VERSION=$LATEST_CNI
     wget -q "https://github.com/containernetworking/plugins/releases/download/${LATEST_CNI}/cni-plugins-linux-amd64-${LATEST_CNI}.tgz" -P /tmp/
     sudo mkdir -p /opt/cni/bin
     sudo tar -C /opt/cni/bin -xzvf /tmp/cni-plugins-linux-amd64-${LATEST_CNI}.tgz
@@ -129,19 +142,48 @@ install_cni_plugins() {
 
 install_kubernetes() {
     log "Installing Kubernetes components (kubeadm, kubelet, kubectl)..."
-    # Fetch latest Kubernetes release info for stable channel (using kubeadm repo)
-    # Here we assume that you want to use the latest candidate versions available from the official repo.
+    # Fetch the latest stable Kubernetes version
+    FULL_K8S_VERSION=$(curl -s https://dl.k8s.io/release/stable.txt)
+    if [ -z "$FULL_K8S_VERSION" ]; then
+      error_exit "Could not retrieve the latest Kubernetes version."
+    fi
+    log "Latest Kubernetes version detected: $FULL_K8S_VERSION"
+    # Extract the minor version (e.g., "v1.32" from "v1.32.2")
+    MINOR_K8S_VERSION=$(echo "$FULL_K8S_VERSION" | cut -d. -f1,2)
+    log "Using Kubernetes minor version: $MINOR_K8S_VERSION"
+
     sudo mkdir -p -m 755 /etc/apt/keyrings
-    log "Downloading Kubernetes GPG key..."
-    curl -fsSL "https://pkgs.k8s.io/core:/stable:/v1.29/deb/Release.key" | sudo gpg --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg
-    log "Configuring Kubernetes APT repository..."
-    echo "deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/v1.29/deb/ /" | sudo tee /etc/apt/sources.list.d/kubernetes.list > /dev/null
+    log "Downloading Kubernetes GPG key for $MINOR_K8S_VERSION..."
+    curl -fsSL "https://pkgs.k8s.io/core:/stable:/${MINOR_K8S_VERSION}/deb/Release.key" | sudo gpg --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg
+    log "Configuring Kubernetes APT repository for $MINOR_K8S_VERSION..."
+    echo "deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/${MINOR_K8S_VERSION}/deb/ /" | sudo tee /etc/apt/sources.list.d/kubernetes.list > /dev/null
     log "Updating APT package lists..."
     sudo apt-get update -y
     log "Installing kubelet, kubeadm, and kubectl..."
     sudo apt-get install -y kubelet kubeadm kubectl
     sudo apt-mark hold kubelet kubeadm kubectl
     log "Kubernetes components installation complete."
+}
+
+print_versions() {
+    log "Printing installed versions:"
+    echo "--------------------------------"
+    echo "Containerd version (command output):"
+    containerd --version || echo "Unable to determine containerd version via command."
+    echo "Containerd version (script variable): $CONTAINERD_VERSION"
+    echo "--------------------------------"
+    echo "runc version (command output):"
+    runc --version || echo "Unable to determine runc version via command."
+    echo "runc version (script variable): $RUNC_VERSION"
+    echo "--------------------------------"
+    echo "CNI plugins version (downloaded): $CNI_VERSION"
+    echo "--------------------------------"
+    echo "Kubeadm version:"
+    kubeadm version --short || echo "Unable to determine kubeadm version."
+    echo "--------------------------------"
+    echo "Kubectl version (client):"
+    kubectl version --client --short || echo "Unable to determine kubectl version."
+    echo "--------------------------------"
 }
 
 #############################
@@ -158,7 +200,8 @@ main() {
     install_runc
     install_cni_plugins
     install_kubernetes
-    log "All components have been installed and configured successfully."
+    print_versions
+    log "All components have been installed, configured, and their versions printed successfully."
 }
 
 main
