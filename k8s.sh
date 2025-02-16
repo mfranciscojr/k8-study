@@ -142,8 +142,8 @@ install_cni_plugins() {
 
 install_kubernetes() {
     log "Installing Kubernetes components (kubeadm, kubelet, kubectl)..."
-    # Fetch the latest stable Kubernetes version
-    FULL_K8S_VERSION=$(curl -s https://dl.k8s.io/release/stable.txt)
+    # Fetch the latest stable Kubernetes version using wget (which follows redirects)
+    FULL_K8S_VERSION=$(wget -qO- https://dl.k8s.io/release/stable.txt)
     if [ -z "$FULL_K8S_VERSION" ]; then
       error_exit "Could not retrieve the latest Kubernetes version."
     fi
@@ -164,6 +164,7 @@ install_kubernetes() {
     sudo apt-mark hold kubelet kubeadm kubectl
     log "Kubernetes components installation complete."
 }
+
 
 print_versions() {
     log "Printing installed versions:"
