@@ -90,5 +90,5 @@ cat custom-resources.yaml
 #############################
 log "Applying updated Calico custom-resources manifest..."
 kubectl apply -f custom-resources.yaml || error_exit "Failed to apply custom-resources.yaml."
-
+export KUBECONFIG=/etc/kubernetes/admin.conf
 log "Kubernetes cluster initialization and Calico deployment complete."
