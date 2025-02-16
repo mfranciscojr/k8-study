@@ -100,3 +100,7 @@ echo "Applying Netplan configuration..."
 sudo netplan apply
 
 echo "Configuration complete. Hostname set to $HOSTNAME with IP address $IP."
+
+echo "logging user out to apply changes"
+exit
+logout
