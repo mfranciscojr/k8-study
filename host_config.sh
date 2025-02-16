@@ -5,6 +5,7 @@ QUIET=true
 
 # Define an associative array with hostnames as keys and IP addresses as values
 declare -A HOSTS=(
+  ["k8-HA-PROXY-node-"]="192.168.100.50"
   ["k8-master-node-1"]="192.168.100.51"
   ["k8-master-node-2"]="192.168.100.52"
   ["k8-master-node-3"]="192.168.100.53"
