@@ -55,7 +55,7 @@ log "Detected Kubernetes version: $KUBEADM_VERSION"
 #############################
 log "Initializing Kubernetes cluster with pod-network-cidr $POD_NETWORK_CIDR, version $KUBEADM_VERSION, node-name $NODE_NAME..."
 sudo kubeadm init --pod-network-cidr "$POD_NETWORK_CIDR" --kubernetes-version "$KUBEADM_VERSION" --node-name "$NODE_NAME" || error_exit "kubeadm init failed."
-
+sleep 30
 #############################
 # Step 4: Set KUBECONFIG environment variable
 #############################
