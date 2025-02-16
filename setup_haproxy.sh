@@ -17,9 +17,6 @@ sudo systemctl enable haproxy
 echo "Starting HAProxy service..."
 sudo systemctl start haproxy
 
-echo "Checking HAProxy service status..."
-sudo systemctl status haproxy
-
 echo "Backing up current HAProxy configuration file..."
 if [ -f /etc/haproxy/haproxy.cfg ]; then
     sudo cp /etc/haproxy/haproxy.cfg /etc/haproxy/haproxy.cfg.bak
