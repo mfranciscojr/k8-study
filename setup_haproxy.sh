@@ -16,22 +16,8 @@ else
     echo "Installing HAProxy..."
     sudo apt install haproxy -y
 fi
-
-# Check if HAProxy service is enabled
-if systemctl is-enabled haproxy >/dev/null 2>&1; then
-    echo "HAProxy service is already enabled."
-else
-    echo "Enabling HAProxy service..."
-    sudo systemctl enable haproxy
-fi
-
-# Check if HAProxy service is running
-if systemctl is-active haproxy >/dev/null 2>&1; then
-    echo "HAProxy service is already running."
-else
-    echo "Starting HAProxy service..."
-    sudo systemctl start haproxy
-fi
+echo "Stopping haproxy..."
+sudo systemctl start haproxy
 
 echo "Backing up current HAProxy configuration file..."
 if [ -f /etc/haproxy/haproxy.cfg ]; then
@@ -47,6 +33,22 @@ if [ -f ./haproxy.cfg ]; then
 else
     echo "New haproxy.cfg not found in the current directory!"
     exit 1
+fi
+
+# Check if HAProxy service is enabled
+if systemctl is-enabled haproxy >/dev/null 2>&1; then
+    echo "HAProxy service is already enabled."
+else
+    echo "Enabling HAProxy service..."
+    sudo systemctl enable haproxy
+fi
+
+# Check if HAProxy service is running
+if systemctl is-active haproxy >/dev/null 2>&1; then
+    echo "HAProxy service is already running."
+else
+    echo "Starting HAProxy service..."
+    sudo systemctl start haproxy
 fi
 
 echo "Restarting HAProxy service..."
