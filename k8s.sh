@@ -180,10 +180,10 @@ print_versions() {
     echo "CNI plugins version (downloaded): $CNI_VERSION"
     echo "--------------------------------"
     echo "Kubeadm version:"
-    kubeadm version --short || echo "Unable to determine kubeadm version."
+    kubeadm version  || echo "Unable to determine kubeadm version."
     echo "--------------------------------"
     echo "Kubectl version (client):"
-    kubectl version --client --short || echo "Unable to determine kubectl version."
+    kubectl version --client || echo "Unable to determine kubectl version."
     echo "--------------------------------"
 }
 
